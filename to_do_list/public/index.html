@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>To-Do List</title>
+  <style>
+    body { font-family: sans-serif; max-width: 600px; margin: 2rem auto; }
+    li { margin: 0.5rem 0; }
+    .done { text-decoration: line-through; color: gray; }
+    button { margin-left: 10px; }
+  </style>
+</head>
+<body>
+  <h1>To-Do List</h1>
+
+  <form id="todoForm">
+    <input type="text" id="titleInput" placeholder="Yeni görev" required />
+    <button type="submit">Ekle</button>
+  </form>
+
+  <ul id="todoList"></ul>
+
+  <script>
+    const API_URL = 'http://127.0.0.1:3000/todos';
+    const todoList = document.getElementById('todoList');
+    const form = document.getElementById('todoForm');
+    const input = document.getElementById('titleInput');
+
+  
+    async function loadTodos() {
+      todoList.innerHTML = '';
+      const res = await fetch(API_URL, {
+  method: 'GET',
+  mode: 'cors'
+});
+
+      const todos = await res.json();
+
+      todos.forEach(todo => {
+        const li = document.createElement('li');
+        li.textContent = todo.title;
+        if (todo.status) li.classList.add('done');
+
+        const toggleBtn = document.createElement('button');
+        toggleBtn.textContent = todo.status ? 'Geri Al' : 'Tamamla';
+        toggleBtn.onclick = async () => {
+          await fetch(`${API_URL}/${todo.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              title: todo.title,
+              status: !todo.status
+            })
+          });
+          loadTodos();
+        };
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.textContent = 'Sil';
+        deleteBtn.onclick = async () => {
+          await fetch(`${API_URL}/${todo.id}`, { method: 'DELETE' });
+          loadTodos();
+        };
+
+        li.appendChild(toggleBtn);
+        li.appendChild(deleteBtn);
+        todoList.appendChild(li);
+      });
+    }
+
+    
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      const title = input.value.trim();
+      if (!title) return;
+
+      await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title })
+      });
+
+      input.value = '';
+      loadTodos();
+    };
+
+    loadTodos();
+  </script>
+</body>
+</html>
